@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Twicli
 {
-	static class Twitter
+	static public class Twitter
 	{
 		static public string consumer_key =
 				"";

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Twicli
 {
 	[Serializable]
-	class Settings
+	public class Settings
 	{
 		#region Load and Save
 		static readonly string _filename = "twitter.settings";
