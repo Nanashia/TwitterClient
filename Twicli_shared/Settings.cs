@@ -1,40 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Twicli
 {
-	[Serializable]
 	public class Settings
 	{
 		#region Load and Save
 		static readonly string _filename = "twitter.settings";
+		static Newtonsoft.Json.JsonSerializer serializer = null;
 
 		static private Settings _instance;
+		static private object _lock = new object();
 		static public Settings Get()
 		{
-			if (_instance == null)
+			Debug.I("loading settings");
+			lock (_lock)
 			{
-				Stream stream = null;
-				try
+				if (_instance == null)
 				{
-					System.Runtime.Serialization.IFormatter formatter = 
-						new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-					stream = new FileStream(_filename,
-						FileMode.Open, FileAccess.Read, FileShare.Read);
-					_instance = (Settings)formatter.Deserialize(stream);
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine(e.ToString());
-					_instance = new Settings();
-				}
-				finally
-				{
-					stream.Close();
+					Stream stream = null;
+					serializer = new JsonSerializer();
+					try
+					{
+						Debug.I("reading " + Path.GetFullPath(_filename));
+						using (stream = new FileStream(_filename,
+							FileMode.Open, FileAccess.Read, FileShare.Read))
+						{
+							var reader = new StreamReader(stream);
+							_instance = (Settings)serializer.Deserialize(reader, typeof(Settings)); ;
+						}
+					}
+					catch (Exception e)
+					{
+						Debug.D(e.ToString());
+						_instance = new Settings();
+					}
+
 				}
 			}
 			return _instance;
@@ -42,29 +49,31 @@ namespace Twicli
 
 		static public void Save()
 		{
-			Stream stream = null;
-			try
+			lock (_lock)
 			{
-				System.Runtime.Serialization.IFormatter formatter = 
-					new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-				stream = new FileStream(_filename,
-					FileMode.Create, FileAccess.Write, FileShare.None);
-				formatter.Serialize(stream, Get());
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.ToString());
-			}
-			finally
-			{
-				stream.Close();
+				Stream stream = null;
+				try
+				{
+					Debug.I("writing " + Path.GetFullPath(_filename));
+					using (stream = new FileStream(_filename,
+						FileMode.Create, FileAccess.Write, FileShare.None))
+					{
+						var writer = new StreamWriter(stream);
+						serializer.Serialize(writer, _instance);
+					}
+				}
+				catch (Exception e)
+				{
+					Debug.D(e.ToString());
+				}
 			}
 		}
 
 		private Settings()
 		{
+			Debug.I("creating new instance");
 		}
-#endregion
+		#endregion
 
 		public string cached_access_key = "";
 		public string cached_access_secret = "";
