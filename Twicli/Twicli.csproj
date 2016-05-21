@@ -114,12 +114,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Twicli_shared\Twicli_shared.csproj">
-      <Project>{b1f4a82e-f75b-4eec-9839-00b3a3637284}</Project>
-      <Name>Twicli_shared</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Import Project="..\Twicli_shared\Twicli_shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
