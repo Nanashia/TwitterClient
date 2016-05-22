@@ -10,32 +10,50 @@ namespace Twicli
 {
 	static public class Twitter
 	{
-		static public string consumerKey =
-				"VjgPMzi2melNLd0Lj9PSB8VME";
-		static public string consumerSecret =
-				"rZi1TtYCHEk2FOMeBhElKfyiVjpMkupr8CgIapUjGeXRPaOxMg";
+		static public readonly string consumerKey =
+				"";
+		static public readonly string consumerSecret =
+				"";
 
-		static private Dictionary<Uri, OAuth.OAuthSession> tableSessions;
+		static public readonly int pinLength = 7;
+
+		static private Dictionary<Uri, OAuth.OAuthSession> tableSessions = new Dictionary<Uri, OAuth.OAuthSession>();
 
 		static async public Task<Uri> AuthenticatePhase1()
 		{
+			Debug.I("requesting auth url");
 			var session = await OAuth.AuthorizeAsync(consumerKey, consumerSecret);
-			tableSessions.Add(session.AuthorizeUri, session);
 
+			lock (tableSessions)
+				tableSessions.Add(session.AuthorizeUri, session);
+
+			Debug.I("auth url=[" + session.AuthorizeUri + "]");
 			return session.AuthorizeUri;
 		}
 
-		static async public  Task<Tokens> AuthenticatePhase2(Uri uri, string pin)
+		static async public Task<Tokens> AuthenticatePhase2(Uri uri, string pin)
 		{
-			var session = tableSessions[uri];
-			if (session == null)
+			Debug.I("requesting auth token");
+			OAuth.OAuthSession session = null;
+			lock (tableSessions)
 			{
-				throw new InvalidProgramException("not registered uri=[" + uri + "]");
+				session = tableSessions[uri];
+				if (session == null)
+				{
+					throw new InvalidProgramException("not registered uri=[" + uri + "]");
+				}
+				tableSessions.Remove(uri);
 			}
-			tableSessions.Remove(uri);
 
 			var tokens = await OAuth.GetTokensAsync(session, pin);
 			session = null;
+			Debug.I("auth succeeded");
+
+			Debug.I("restore tokens v=[{0}, {1}, {2}, {3}, ]",
+				tokens.AccessToken,
+				tokens.AccessTokenSecret,
+				tokens.UserId,
+				tokens.ScreenName);
 
 			var setting = Settings.Get();
 			setting.cached_access_key = tokens.AccessToken;
@@ -79,7 +97,8 @@ namespace Twicli
 			try
 			{
 				var res = await tokens.Account.VerifyCredentialsAsync(include_email: false);
-			}catch(Exception e)
+			}
+			catch (Exception e)
 			{
 				Debug.D(e.ToString());
 				return false;
